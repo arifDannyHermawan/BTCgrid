@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="BTC Grid"/>
+<meta name="theme-color" content="#0a0a0f"/>
+<meta name="description" content="BTC Grid Bot Tracker - Pencatatan Pembelian"/>
+<link rel="manifest" id="pwa-manifest"/>
+<link rel="apple-touch-icon" id="pwa-icon"/>
+<title>BTC Grid Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#e0e0e0;font-family:'Courier New',monospace;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+@media(pointer:coarse){
+  ::-webkit-scrollbar{width:0;height:0}
+}
+@media(pointer:fine){
+  ::-webkit-scrollbar{width:5px;height:5px}
+  ::-webkit-scrollbar-thumb{background:rgba(247,147,26,.4);border-radius:3px}
+}
+
+/* ── TOPBAR ── */
+#topbar{
+  background:#0d0d14;
+  border-bottom:1px solid rgba(247,147,26,.25);
+  padding:8px 12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;gap:6px;
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+}
+.logo-icon{
+  width:30px;height:30px;border-radius:7px;flex-shrink:0;
+  background:linear-gradient(135deg,#f7931a,#e8820a);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:900;color:#000;
+}
+.logo-title{font-size:10px;font-weight:700;color:#f7931a;letter-spacing:1px;white-space:nowrap}
+@media(max-width:400px){.logo-title{display:none}}
+
+#live-wrap{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.2);
+  border-radius:7px;padding:4px 10px;flex-shrink:0;
+  box-shadow:0 0 10px rgba(74,222,128,.08),inset 0 0 8px rgba(74,222,128,.04);
+}
+#live-dot{width:6px;height:6px;border-radius:50%;background:#4ade80;animation:livePulse 1.8s ease infinite;flex-shrink:0;box-shadow:0 0 6px rgba(74,222,128,.8)}
+#live-dot.loading{background:#555;animation:none}
+#live-dot.error{background:#f87171;animation:none}
+@keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 6px rgba(74,222,128,.8)}50%{opacity:.4;box-shadow:0 0 2px rgba(74,222,128,.3)}}
+#live-price{font-size:11px;font-weight:700;color:#f7931a}
+.btn-refresh{background:none;border:none;color:rgba(74,222,128,.5);font-size:12px;cursor:pointer;padding:0 2px}
+.btn-refresh:disabled{opacity:.3;cursor:not-allowed}
+
+.stat-box{text-align:right;flex-shrink:0}
+.stat-label{font-size:8px;color:#777;letter-spacing:.8px}
+.stat-value{font-size:14px;color:#f7931a;font-weight:700;letter-spacing:.5px}
+
+.btn-add{
+  background:transparent;
+  color:#f7931a;
+  border:1px solid rgba(247,147,26,.5);
+  border-radius:7px;
+  padding:7px 13px;font-size:10px;font-weight:700;
+  cursor:pointer;letter-spacing:1px;font-family:'Courier New',monospace;
+  white-space:nowrap;flex-shrink:0;
+  transition:background .15s,border-color .15s;
+}
+.btn-add:hover{background:rgba(247,147,26,.15);border-color:rgba(247,147,26,.8)}
+.btn-add:active{background:rgba(247,147,26,.25)}
+.btn-sm{
+  background:rgba(255,255,255,.07);color:#aaa;
+  border:1px solid rgba(255,255,255,.14);border-radius:6px;
+  padding:5px 9px;font-size:11px;cursor:pointer;font-family:'Courier New',monospace;
+}
+
+#saved{font-size:9px;color:#4ade80;opacity:0;transition:opacity .3s;flex-shrink:0}
+#saved.show{opacity:1}
+#out-of-range{
+  display:none;align-items:center;gap:4px;
+  background:rgba(250,200,0,.08);border:1px solid rgba(250,200,0,.25);
+  border-radius:6px;padding:3px 8px;font-size:8px;color:#facc15;
+}
+#out-of-range.visible{display:flex}
+
+/* Action menu */
+#menu-wrap{position:relative;flex-shrink:0}
+#action-menu{
+  display:none;position:absolute;right:0;top:calc(100% + 5px);
+  background:#1a1a24;border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;overflow:hidden;z-index:200;min-width:130px;
+  box-shadow:0 4px 20px rgba(0,0,0,.6);
+}
+#action-menu button{
+  width:100%;padding:10px 14px;background:none;border:none;
+  color:#ccc;font-size:10px;font-family:'Courier New',monospace;
+  cursor:pointer;text-align:left;letter-spacing:.5px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+#action-menu button:last-child{border-bottom:none}
+#action-menu button:hover{background:rgba(255,255,255,.08);color:#fff}
+
+/* ── LEGEND ── */
+#legend-bar{border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;background:#0c0c13;}
+#legend-toggle{padding:5px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+#legend-toggle span:first-child{font-size:8px;color:#888;letter-spacing:1px}
+#legend-arrow{font-size:9px;color:#444;transition:transform .2s}
+#legend-body{display:none;padding:6px 14px 10px;flex-wrap:wrap;gap:12px;align-items:center}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-swatch{width:18px;height:12px;border-radius:3px}
+.legend-label{font-size:8px;color:#888;letter-spacing:.5px}
+.legend-hint{font-size:8px;color:#444;width:100%}
+
+/* ── GRID WRAPPER ── */
+#grid-area{flex:1;overflow:auto;position:relative;background:#080810;}
+
+/* Grid dibagi: header-row sticky + body scrollable */
+#grid-wrap{display:inline-flex;flex-direction:column;min-width:100%;min-height:100%}
+
+/* ── STICKY HEADER ROW ── */
+#header-row{
+  display:flex;flex-direction:row;
+  position:sticky;top:0;z-index:20;
+  background:#0d0d14;
+  border-bottom:2px solid rgba(247,147,26,.35);
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
+}
+/* ── STICKY DEL ROW ── */
+#del-row{
+  display:flex;flex-direction:row;
+  position:sticky;top:90px;z-index:19;
+  background:#080810;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  transition:top 0s;
+}
+
+/* ── HEADER CELLS ── */
+.h-axis{
+  width:52px;flex-shrink:0;height:90px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;color:#f7931a;font-weight:700;letter-spacing:1px;
+  position:sticky;left:0;z-index:25;background:#0d0d14;
+  border-right:2px solid rgba(247,147,26,.2);
+}
+.h-col{
+  width:60px;flex-shrink:0;height:90px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:5px 4px;
+  border-left:1px solid rgba(255,255,255,.06);
+  transition:background .4s;
+}
+.h-col .grid-name{
+  font-size:12px;font-weight:700;color:#f7931a;
+  text-align:center;width:100%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;cursor:pointer;
+  letter-spacing:.5px;
+}
+.h-col .grid-name:hover{color:#fba944}
+.h-col .grid-name:active{color:#fff;background:rgba(247,147,26,.15);border-radius:3px}
+.h-col .grid-range{
+  font-size:9px;color:#aaa;text-align:center;white-space:nowrap;cursor:pointer;font-weight:500;
+}
+.h-col .grid-range:hover{color:#bbb}
+.h-col .grid-range:active{color:#fff;background:rgba(255,255,255,.1);border-radius:3px}
+.grid-prog-bar{width:100%;height:7px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.grid-prog-fill{height:100%;background:linear-gradient(90deg,#e8820a,#f7931a);border-radius:3px;transition:width .3s}
+.grid-prog-pct{font-size:11px;font-weight:700;color:#f7931a;text-align:center;letter-spacing:.5px}
+
+/* ── DEL CELLS ── */
+.d-axis{
+  width:52px;flex-shrink:0;height:22px;
+  position:sticky;left:0;z-index:25;background:#080810;
+}
+.d-col{
+  width:60px;flex-shrink:0;height:22px;
+  display:flex;align-items:center;justify-content:center;
+  border-left:1px solid rgba(255,255,255,.06);
+}
+.btn-del{
+  width:100%;height:100%;background:none;border:none;cursor:pointer;
+  font-size:7px;color:rgba(248,113,113,.5);letter-spacing:2px;font-weight:600;
+  font-family:'Courier New',monospace;transition:background .15s,color .15s;
+}
+.btn-del:hover,.btn-del:active{background:rgba(220,60,60,.15);color:#f87171}
+
+/* ── BODY ROWS ── */
+#body-rows{display:flex;flex-direction:column}
+.price-row{display:flex;flex-direction:row;height:48px}
+
+/* Axis cell */
+.r-axis{
+  width:52px;flex-shrink:0;height:48px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:#e8e8e8;font-weight:600;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  position:sticky;left:0;z-index:10;background:#080810;
+  padding:2px 0;
+}
+.r-axis.current{background:#facc15;color:#000;font-weight:700}
+
+/* Price cells */
+.r-cell{
+  width:60px;flex-shrink:0;height:48px;
+  display:flex;align-items:center;justify-content:center;
+  border-bottom:1px solid rgba(255,255,255,.03);
+  padding:2px 2px;
+}
+.r-cell.in-range{
+  cursor:pointer;
+  transition:background .12s,border-color .12s,transform .08s;
+}
+/* inner div handles visual styling */
+.r-cell .cell-inner{
+  width:100%;height:100%;border-radius:2px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.12);
+}
+.r-cell.in-range:hover .cell-inner{background:rgba(247,147,26,.2);border-color:rgba(247,147,26,.5)}
+.r-cell.in-range:active{transform:scale(.96)}
+@keyframes cellPop{
+  0%{transform:scale(1)}
+  40%{transform:scale(1.18)}
+  70%{transform:scale(.94)}
+  100%{transform:scale(1)}
+}
+@keyframes cellUnpop{
+  0%{transform:scale(1)}
+  40%{transform:scale(.88)}
+  70%{transform:scale(1.06)}
+  100%{transform:scale(1)}
+}
+.r-cell.pop .cell-inner{animation:cellPop .28s cubic-bezier(.36,.07,.19,.97)}
+.r-cell.unpop .cell-inner{animation:cellUnpop .22s cubic-bezier(.36,.07,.19,.97)}
+.r-cell.in-range.bought .cell-inner{background:linear-gradient(135deg,#f7931a,#e8820a);border-color:#e8820a}
+.r-cell.in-range.current .cell-inner{box-shadow:0 0 0 2px #facc15}
+.r-cell.out-range .cell-inner{
+  width:100%;height:100%;border-radius:2px;
+  background:transparent;
+  border:none;
+}
+.r-cell.out-range.current .cell-inner{box-shadow:inset 0 0 0 1px rgba(250,204,21,.2);border-radius:2px}
+
+/* ── EMPTY STATE ── */
+#empty-state{
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 20px;gap:14px;color:#555;text-align:center;
+}
+#empty-state.visible{display:flex}
+
+/* ── MODAL KONFIRMASI TOGGLE ── */
+#modal-confirm{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  display:none;align-items:flex-end;justify-content:center;
+  z-index:999;
+}
+#modal-confirm.show{display:flex}
+#confirm-sheet{
+  background:#13131e;
+  border-top:1px solid rgba(247,147,26,.25);
+  border-radius:12px 12px 0 0;
+  padding:12px 16px 24px;
+  width:100%;max-width:480px;
+  animation:sheetUp .18s ease;
+}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+#confirm-title{
+  font-size:9px;color:#666;letter-spacing:1px;
+  text-align:center;margin-bottom:2px;
+}
+#confirm-status{
+  font-size:9px;letter-spacing:1px;
+  text-align:center;margin-bottom:3px;
+}
+#confirm-price{
+  font-size:16px;font-weight:700;color:#f7931a;
+  text-align:center;margin-bottom:2px;letter-spacing:1px;
+}
+#confirm-grid{
+  font-size:9px;color:#555;text-align:center;
+  margin-bottom:12px;letter-spacing:.5px;
+}
+#confirm-btns{display:flex;gap:8px}
+.btn-beli{
+  flex:1;padding:10px;border:none;border-radius:8px;
+  background:linear-gradient(135deg,#f7931a,#e8820a);
+  color:#000;font-size:11px;font-weight:700;
+  cursor:pointer;font-family:'Courier New',monospace;
+  letter-spacing:1px;transition:opacity .15s;
+}
+.btn-beli:hover{opacity:.88}
+.btn-jual{
+  flex:1;padding:10px;border:none;border-radius:8px;
+  background:linear-gradient(135deg,#dc3030,#b91c1c);
+  color:#fff;font-size:11px;font-weight:700;
+  cursor:pointer;font-family:'Courier New',monospace;
+  letter-spacing:1px;transition:opacity .15s;
+}
+.btn-jual:hover{opacity:.88}
+.btn-confirm-cancel{
+  width:100%;padding:8px;margin-top:6px;
+  background:none;border:none;
+  color:#444;border-radius:8px;cursor:pointer;
+  font-size:10px;font-family:'Courier New',monospace;
+  letter-spacing:1px;
+}
+
+/* ── MODALS ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal-box{background:#111118;border:1px solid rgba(247,147,26,.3);border-radius:14px;padding:24px;width:300px;max-width:92vw;animation:modalIn .18s ease}
+@keyframes modalIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-box.danger{border-color:rgba(220,60,60,.45)}
+.modal-title{font-size:12px;font-weight:700;color:#f7931a;margin-bottom:16px;letter-spacing:2px}
+.modal-title.red{color:#f87171;text-align:center}
+.modal-label{font-size:9px;color:#666;margin-bottom:5px;letter-spacing:1px;display:block}
+.modal-input{
+  width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(247,147,26,.25);
+  color:#fff;border-radius:7px;padding:9px 12px;font-size:12px;
+  outline:none;font-family:'Courier New',monospace;margin-bottom:12px;transition:border-color .2s;
+}
+.modal-input:focus{border-color:rgba(247,147,26,.6)}
+.modal-input.err{border-color:rgba(248,113,113,.7)}
+.modal-btns{display:flex;gap:8px;margin-top:14px}
+.btn-cancel{flex:1;padding:10px;background:rgba(255,255,255,.05);color:#888;border:1px solid rgba(255,255,255,.1);border-radius:7px;cursor:pointer;font-size:11px;font-family:'Courier New',monospace}
+.btn-ok{flex:2;padding:10px;background:linear-gradient(135deg,#f7931a,#e8820a);color:#000;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;font-family:'Courier New',monospace}
+.btn-hapus{flex:1;padding:10px;background:linear-gradient(135deg,#dc3030,#b91c1c);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;font-family:'Courier New',monospace}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div style="display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <div class="logo-icon">₿</div>
+      <span class="logo-title">BTC GRID</span>
+    </div>
+    <div id="live-wrap">
+      <div id="live-dot" class="loading"></div>
+      <span id="live-price">...</span>
+      <button class="btn-refresh" id="btn-refresh">↺</button>
+    </div>
+    <span id="saved">✓ TERSIMPAN</span>
+    <button id="btn-install" onclick="if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(function(){deferredPrompt=null;document.getElementById('btn-install').style.display='none';});}"
+      style="display:none;align-items:center;gap:4px;background:rgba(247,147,26,.15);border:1px solid rgba(247,147,26,.4);border-radius:6px;padding:4px 8px;font-size:9px;color:#f7931a;cursor:pointer;font-family:'Courier New',monospace;letter-spacing:.5px;white-space:nowrap;flex-shrink:0">
+      ⬇ INSTALL
+    </button>
+    <div id="out-of-range">⚠ Di luar grid</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+    <div class="stat-box">
+      <div class="stat-label">TOTAL BELI</div>
+      <div id="total-count" class="stat-value">0</div>
+    </div>
+    <div id="menu-wrap">
+      <button class="btn-sm" id="btn-menu">⋯</button>
+      <div id="action-menu">
+        <button id="btn-export">↓ Export JSON</button>
+        <button id="btn-import">↑ Import JSON</button>
+      </div>
+    </div>
+    <input id="file-import" type="file" accept=".json" style="display:none"/>
+    <button class="btn-add" id="btn-add-grid">+ GRID</button>
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div id="legend-bar">
+  <div id="legend-toggle">
+    <span>LEGENDA & PETUNJUK</span>
+    <span id="legend-arrow">▼</span>
+  </div>
+  <div id="legend-body">
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:linear-gradient(135deg,#f7931a,#e8820a)"></div>
+      <span class="legend-label">SUDAH BELI</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)"></div>
+      <span class="legend-label">BELUM BELI</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="border:2px solid #facc15;border-radius:3px"></div>
+      <span class="legend-label">HARGA KINI</span>
+    </div>
+    <span class="legend-hint">Klik sel = toggle beli · Klik nama/range = edit</span>
+  </div>
+</div>
+
+<!-- GRID AREA -->
+<div id="grid-area">
+  <div id="grid-wrap">
+    <div id="header-row"></div>
+    <div id="del-row"></div>
+    <div id="body-rows"></div>
+  </div>
+  <div id="empty-state">
+    <div style="font-size:36px;opacity:.4">₿</div>
+    <div style="font-size:13px;color:#666;letter-spacing:1px">BELUM ADA GRID</div>
+    <div style="font-size:10px;color:#444">Klik <b style="color:#f7931a">+ GRID</b> untuk mulai</div>
+  </div>
+</div>
+
+<!-- MODAL: Konfirmasi Beli/Jual -->
+<div id="modal-confirm">
+  <div id="confirm-sheet">
+    <div id="confirm-title">KONFIRMASI</div>
+    <div id="confirm-status"></div>
+    <div id="confirm-price"></div>
+    <div id="confirm-grid"></div>
+    <div id="confirm-btns">
+      <button class="btn-beli" id="btn-beli">✓ BELI</button>
+      <button class="btn-jual" id="btn-jual">✕ JUAL</button>
+    </div>
+    <button class="btn-confirm-cancel" id="btn-confirm-cancel">BATAL</button>
+  </div>
+</div>
+
+<!-- MODAL: Tambah -->
+<div id="modal-add" class="modal-bg" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title">+ TAMBAH GRID</div>
+    <label class="modal-label">NAMA GRID</label>
+    <input class="modal-input" id="in-label" placeholder="misal: Grid A"/>
+    <label class="modal-label">MIN HARGA (ribuan $)</label>
+    <input class="modal-input" id="in-min" placeholder="misal: 70" type="number"/>
+    <label class="modal-label">MAX HARGA (ribuan $)</label>
+    <input class="modal-input" id="in-max" placeholder="misal: 130" type="number"/>
+    <div class="modal-btns">
+      <button class="btn-cancel" id="btn-add-cancel">Batal</button>
+      <button class="btn-ok" id="btn-add-ok">TAMBAH</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Hapus -->
+<div id="modal-del" class="modal-bg" style="display:none">
+  <div class="modal-box danger" style="text-align:center">
+    <div class="modal-title red">HAPUS GRID?</div>
+    <div id="del-msg" style="font-size:11px;color:#aaa;margin-bottom:16px;line-height:1.7"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" id="btn-del-cancel">Batal</button>
+      <button class="btn-hapus" id="btn-del-ok">YA, HAPUS</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Edit -->
+<div id="modal-edit" class="modal-bg" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title" id="edit-title">EDIT</div>
+    <div id="edit-fields"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" id="btn-edit-cancel">Batal</button>
+      <button class="btn-ok" id="btn-edit-ok">SIMPAN</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var KEY='btcgv9',state,pendingDelId,editMode=null,editGridId=null;
+
+function defState(){
+  return{grids:[
+    {id:1,label:'Grid A',min:30,max:80,bought:{}},
+    {id:2,label:'Grid B',min:40,max:90,bought:{}},
+    {id:3,label:'Grid C',min:50,max:100,bought:{}},
+    {id:4,label:'Grid D',min:60,max:110,bought:{}}
+  ],nid:5,currentPrice:0};
+}
+function load(){
+  var OLD_KEYS=['btcgv7','btcgv8','btcgrid','btcgrid2','btc-grid','btcg'];
+  try{
+    // Coba load dari key terbaru dulu
+    var s=localStorage.getItem(KEY);
+    if(s){
+      state=JSON.parse(s);
+    } else {
+      // Cari data lama di key-key sebelumnya
+      var migrated=null;
+      for(var i=0;i<OLD_KEYS.length;i++){
+        var old=localStorage.getItem(OLD_KEYS[i]);
+        if(old){
+          try{
+            var parsed=JSON.parse(old);
+            if(parsed&&parsed.grids&&parsed.grids.length){
+              migrated=parsed;
+              console.log('Migrasi data dari key: '+OLD_KEYS[i]);
+              break;
+            }
+          }catch(e){}
+        }
+      }
+      if(migrated){
+        state=migrated;
+        // Simpan ke key baru, hapus key lama
+        localStorage.setItem(KEY,JSON.stringify(state));
+        for(var j=0;j<OLD_KEYS.length;j++){
+          if(localStorage.getItem(OLD_KEYS[j]))localStorage.removeItem(OLD_KEYS[j]);
+        }
+        console.log('Migrasi selesai: '+state.grids.length+' grid dipindahkan.');
+      } else {
+        state=defState();
+      }
+    }
+  }catch(e){state=defState();}
+  state.currentPrice=parseInt(state.currentPrice)||0;
+  if(!state.nid||state.nid<=0){
+    var ids=state.grids.map(function(g){return g.id||0;});
+    state.nid=(ids.length?Math.max.apply(null,ids):0)+1;
+  }
+}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
+  var el=document.getElementById('saved');
+  el.classList.add('show');
+  setTimeout(function(){el.classList.remove('show');},1800);
+}
+function allPrices(){
+  if(!state.grids.length)return[];
+  var mn=Infinity,mx=-Infinity;
+  state.grids.forEach(function(g){if(g.min<mn)mn=g.min;if(g.max>mx)mx=g.max;});
+  var a=[];for(var i=mx;i>=mn;i--)a.push(i);return a;
+}
+function totalBought(){
+  return state.grids.reduce(function(s,g){
+    return s+Object.keys(g.bought).filter(function(k){return g.bought[k];}).length;
+  },0);
+}
+function toggle(gid,p){
+  var g=state.grids.find(function(g){return g.id===gid;});if(!g)return;
+  var k=String(p);
+  var wasBought=!!g.bought[k];
+  if(wasBought)delete g.bought[k];else g.bought[k]=true;
+  save();render();
+  // Animasi pop — cari sel via data-gid & data-price
+  setTimeout(function(){
+    var cell=document.querySelector('.r-cell[data-gid="'+gid+'"][data-price="'+p+'"]');
+    if(!cell)return;
+    var inner=cell.querySelector('.cell-inner');
+    if(!inner)return;
+    var cls=wasBought?'unpop':'pop';
+    inner.classList.remove('pop','unpop');
+    void inner.offsetWidth;
+    inner.classList.add(cls);
+    setTimeout(function(){inner.classList.remove('pop','unpop');},350);
+  },0);
+}
+function setCurrentPrice(val){
+  state.currentPrice=parseInt(val)||0;
+  var oor=document.getElementById('out-of-range');
+  if(state.currentPrice&&!state.grids.some(function(g){return state.currentPrice>=g.min&&state.currentPrice<=g.max;}))
+    oor.classList.add('visible');
+  else oor.classList.remove('visible');
+  render();
+}
+
+function editName(id){
+  var g=state.grids.find(function(g){return g.id===id;});if(!g)return;
+  editMode='name';editGridId=id;
+  document.getElementById('edit-title').textContent='RENAME GRID';
+  document.getElementById('edit-fields').innerHTML='<label class="modal-label">NAMA GRID</label><input class="modal-input" id="ev1" value="'+g.label+'"/>';
+  document.getElementById('modal-edit').style.display='flex';
+  setTimeout(function(){var v=document.getElementById('ev1');if(v){v.focus();v.select();}},80);
+}
+function editRange(id){
+  var g=state.grids.find(function(g){return g.id===id;});if(!g)return;
+  editMode='range';editGridId=id;
+  document.getElementById('edit-title').textContent='UBAH RANGE';
+  document.getElementById('edit-fields').innerHTML='<label class="modal-label">MIN (ribuan $)</label><input class="modal-input" id="ev1" type="number" value="'+g.min+'"/><label class="modal-label">MAX (ribuan $)</label><input class="modal-input" id="ev2" type="number" value="'+g.max+'"/>';
+  document.getElementById('modal-edit').style.display='flex';
+  setTimeout(function(){var v=document.getElementById('ev1');if(v)v.focus();},80);
+}
+function doEdit(){
+  var g=state.grids.find(function(g){return g.id===editGridId;});if(!g)return;
+  if(editMode==='name'){
+    var v=document.getElementById('ev1').value.trim();if(!v)return;g.label=v;
+  } else {
+    var mn=parseInt(document.getElementById('ev1').value);
+    var mx=parseInt(document.getElementById('ev2').value);
+    if(isNaN(mn)||isNaN(mx)||mn>=mx){document.getElementById('ev2').classList.add('err');setTimeout(function(){document.getElementById('ev2').classList.remove('err');},1500);return;}
+    g.min=mn;g.max=mx;
+  }
+  save();document.getElementById('modal-edit').style.display='none';render();
+}
+function askDel(id){
+  if(state.grids.length<=1)return;
+  var g=state.grids.find(function(g){return g.id===id;});if(!g)return;
+  pendingDelId=id;
+  document.getElementById('del-msg').innerHTML='Grid <b style="color:#f7931a">'+g.label+'</b><br>dan semua data pembeliannya akan dihapus.';
+  document.getElementById('modal-del').style.display='flex';
+}
+function doDelGrid(){
+  var modal=document.getElementById('modal-del');
+  if(modal.dataset.mode==='import'){
+    // Mode import
+    if(pendingImport){
+      state=pendingImport;pendingImport=null;save();render();
+    }
+    modal.dataset.mode='';
+    document.getElementById('btn-del-ok').textContent='YA, HAPUS';
+  } else {
+    // Mode hapus grid
+    state.grids=state.grids.filter(function(g){return g.id!==pendingDelId;});
+    save();render();
+  }
+  modal.style.display='none';
+}
+function showAddModal(){
+  document.getElementById('in-label').value='';
+  document.getElementById('in-min').value='';
+  document.getElementById('in-max').value='';
+  document.getElementById('modal-add').style.display='flex';
+  setTimeout(function(){var v=document.getElementById('in-label');v.focus();v.select();},80);
+}
+function doAddGrid(){
+  var label=document.getElementById('in-label').value.trim();
+  var mn=parseInt(document.getElementById('in-min').value);
+  var mx=parseInt(document.getElementById('in-max').value);
+  if(isNaN(mn)||isNaN(mx)||mn>=mx){
+    document.getElementById('in-max').classList.add('err');
+    setTimeout(function(){document.getElementById('in-max').classList.remove('err');},1500);return;
+  }
+  state.grids.unshift({id:state.nid++,label:label||('Grid '+(state.grids.length+1)),min:mn,max:mx,bought:{}});
+  save();document.getElementById('modal-add').style.display='none';render();
+  document.getElementById('grid-area').scrollLeft=0;
+}
+function exportData(){
+  var blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');
+  a.href=url;a.download='btc-grid-'+(new Date().toISOString().slice(0,10))+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+var pendingImport=null;
+function importData(file){
+  if(!file)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var imp=JSON.parse(e.target.result);
+      if(!imp.grids||!Array.isArray(imp.grids)){
+        alert('File tidak valid.');return;
+      }
+      imp.nid=imp.nid||Math.max.apply(null,imp.grids.map(function(g){return g.id;}))+1;
+      imp.currentPrice=parseInt(imp.currentPrice)||0;
+      pendingImport=imp;
+      // Tampilkan modal konfirmasi
+      document.getElementById('del-msg').innerHTML=
+        'Import akan <b style="color:#f87171">mengganti semua data</b> saat ini.<br>'+
+        imp.grids.length+' grid ditemukan dalam file.<br>'+
+        '<span style="font-size:9px;color:#666">Data lama tidak bisa dikembalikan.</span>';
+      document.getElementById('btn-del-ok').textContent='YA, IMPORT';
+      document.getElementById('modal-del').dataset.mode='import';
+      document.getElementById('modal-del').style.display='flex';
+    }catch(e){console.error(e);}
+  };r.readAsText(file);
+}
+
+/* ── RENDER ── */
+function render(){
+  var prices=allPrices();
+  var hRow=document.getElementById('header-row');
+  var dRow=document.getElementById('del-row');
+  var bRows=document.getElementById('body-rows');
+  hRow.innerHTML='';dRow.innerHTML='';bRows.innerHTML='';
+  document.getElementById('total-count').textContent=totalBought();
+
+  var empty=document.getElementById('empty-state');
+  var wrap=document.getElementById('grid-wrap');
+  if(!state.grids.length){empty.classList.add('visible');wrap.style.display='none';return;}
+  empty.classList.remove('visible');wrap.style.display='';
+
+  // ── HEADER ROW ──
+  var axH=document.createElement('div');axH.className='h-axis';axH.textContent='';
+  hRow.appendChild(axH);
+  state.grids.forEach(function(g){
+    var bc=Object.keys(g.bought).filter(function(k){return g.bought[k];}).length;
+    var tot=g.max-g.min+1;
+    var pct=tot>0?Math.round(bc/tot*100):0;
+    var tint=0.04+pct/100*0.2;
+
+    var h=document.createElement('div');h.className='h-col';
+    h.style.background='rgba(247,147,26,'+tint+')';
+
+    var nm=document.createElement('div');nm.className='grid-name';nm.textContent=g.label;
+    nm.onclick=(function(id){return function(){editName(id);};})(g.id);
+    var rng=document.createElement('div');rng.className='grid-range';rng.textContent=g.min+'–'+g.max+'K';
+    rng.onclick=(function(id){return function(){editRange(id);};})(g.id);
+    var pb=document.createElement('div');pb.className='grid-prog-bar';
+    var pf=document.createElement('div');pf.className='grid-prog-fill';pf.style.width=pct+'%';pb.appendChild(pf);
+    var pp=document.createElement('div');pp.className='grid-prog-pct';pp.textContent=pct+'%';
+
+    h.appendChild(nm);h.appendChild(rng);h.appendChild(pb);h.appendChild(pp);
+    hRow.appendChild(h);
+  });
+
+  // ── DEL ROW ──
+  var axD=document.createElement('div');axD.className='d-axis';
+  dRow.appendChild(axD);
+  state.grids.forEach(function(g){
+    var dc=document.createElement('div');dc.className='d-col';
+    var btn=document.createElement('button');btn.className='btn-del';btn.textContent='× HAPUS';
+    if(state.grids.length<=1){btn.style.opacity='0.15';btn.disabled=true;}
+    btn.onclick=(function(id){return function(e){e.stopPropagation();askDel(id);};})(g.id);
+    dc.appendChild(btn);dRow.appendChild(dc);
+  });
+
+  // ── BODY ROWS ──
+  prices.forEach(function(p,idx){
+    var row=document.createElement('div');row.className='price-row';
+    // Micro-separator setiap 5 baris
+    if(idx>0&&p%5===0){row.style.borderTop='1px solid rgba(255,255,255,.07)';}
+
+    var ax=document.createElement('div');
+    ax.className='r-axis'+(state.currentPrice===p?' current':'');
+    ax.textContent=p+'K';
+    row.appendChild(ax);
+
+    state.grids.forEach(function(g){
+      var cell=document.createElement('div');
+      var inRange=(p>=g.min&&p<=g.max);
+      var inner=document.createElement('div');inner.className='cell-inner';
+      if(inRange){
+        var bought=!!g.bought[String(p)];
+        cell.className='r-cell in-range'+(bought?' bought':'')+(state.currentPrice===p?' current':'');
+        cell.dataset.gid=g.id;cell.dataset.price=p;
+        cell.title=(bought?'✓ Sudah beli':'Belum beli')+' — '+p+'K';
+        // Garis batas atas range (harga max)
+        if(p===g.max){inner.style.borderTop='2px solid rgba(247,147,26,.6)';}
+        // Garis batas bawah range (harga min)
+        if(p===g.min){inner.style.borderBottom='2px solid rgba(247,147,26,.6)';}
+        // onclick di inner saja — hindari trigger di area padding
+        inner.onclick=(function(gid,pr,bought){return function(e){e.stopPropagation();showConfirm(gid,pr,bought);};})(g.id,p,bought);
+      } else {
+        cell.className='r-cell out-range'+(state.currentPrice===p?' current':'');
+      }
+      cell.appendChild(inner);
+      row.appendChild(cell);
+    });
+    bRows.appendChild(row);
+  });
+}
+
+/* ── EVENTS ── */
+document.getElementById('btn-add-grid').onclick=showAddModal;
+document.getElementById('btn-add-cancel').onclick=function(){document.getElementById('modal-add').style.display='none';};
+document.getElementById('btn-add-ok').onclick=doAddGrid;
+document.getElementById('btn-del-cancel').onclick=function(){
+  var modal=document.getElementById('modal-del');
+  modal.style.display='none';
+  modal.dataset.mode='';
+  document.getElementById('btn-del-ok').textContent='YA, HAPUS';
+  pendingImport=null;
+};
+document.getElementById('btn-del-ok').onclick=doDelGrid;
+document.getElementById('btn-edit-cancel').onclick=function(){document.getElementById('modal-edit').style.display='none';};
+document.getElementById('btn-edit-ok').onclick=doEdit;
+['modal-add','modal-edit'].forEach(function(id){
+  document.getElementById(id).onclick=function(e){if(e.target===this)this.style.display='none';};
+});
+document.getElementById('modal-del').onclick=function(e){
+  if(e.target===this){
+    this.style.display='none';
+    this.dataset.mode='';
+    document.getElementById('btn-del-ok').textContent='YA, HAPUS';
+    pendingImport=null;
+  }
+};
+document.getElementById('in-label').onkeydown=function(e){if(e.key==='Enter')document.getElementById('in-min').focus();};
+document.getElementById('in-min').onkeydown=function(e){if(e.key==='Enter')document.getElementById('in-max').focus();};
+document.getElementById('in-max').onkeydown=function(e){if(e.key==='Enter')doAddGrid();};
+
+document.getElementById('legend-toggle').onclick=function(){
+  var b=document.getElementById('legend-body'),a=document.getElementById('legend-arrow');
+  var open=b.style.display==='flex'||b.style.display==='block';
+  b.style.display=open?'none':'flex';a.style.transform=open?'':'rotate(180deg)';
+};
+
+var menuOpen=false;
+var deferredPrompt=null;
+var btnMenu=document.getElementById('btn-menu');
+document.getElementById('btn-menu').onclick=function(e){
+  e.stopPropagation();menuOpen=!menuOpen;
+  document.getElementById('action-menu').style.display=menuOpen?'block':'none';
+  btnMenu.style.background=menuOpen?'rgba(255,255,255,.15)':'rgba(255,255,255,.07)';
+  btnMenu.style.color=menuOpen?'#fff':'#aaa';
+};
+document.addEventListener('click',function(){
+  menuOpen=false;
+  document.getElementById('action-menu').style.display='none';
+  btnMenu.style.background='rgba(255,255,255,.07)';
+  btnMenu.style.color='#aaa';
+});
+document.getElementById('btn-export').onclick=exportData;
+document.getElementById('btn-import').onclick=function(){document.getElementById('file-import').click();};
+document.getElementById('file-import').onchange=function(){importData(this.files[0]);this.value='';};
+
+/* ── LIVE PRICE ── */
+var liveTimer=null;
+function fetchLivePrice(){
+  var dot=document.getElementById('live-dot');
+  var pr=document.getElementById('live-price');
+  var btn=document.getElementById('btn-refresh');
+  dot.className='loading';pr.textContent='...';btn.disabled=true;
+
+  function apply(usd){
+    dot.className='';
+    pr.textContent='$'+(usd/1000).toFixed(1)+'K';
+    btn.disabled=false;
+    setCurrentPrice(Math.round(usd/1000));
+    clearTimeout(liveTimer);
+    liveTimer=setTimeout(fetchLivePrice,60000);
+  }
+  function fail(){
+    dot.className='error';pr.textContent='–';btn.disabled=false;
+    // Auto retry 30 detik kemudian
+    clearTimeout(liveTimer);
+    liveTimer=setTimeout(fetchLivePrice,30000);
+  }
+  fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT')
+    .then(function(r){return r.json();})
+    .then(function(d){var u=parseFloat(d.price);if(!u||isNaN(u))throw 0;apply(u);})
+    .catch(function(){
+      fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd')
+        .then(function(r){return r.json();})
+        .then(function(d){var u=d&&d.bitcoin&&d.bitcoin.usd;if(!u)throw 0;apply(u);})
+        .catch(fail);
+    });
+}
+document.getElementById('btn-refresh').onclick=function(){clearTimeout(liveTimer);fetchLivePrice();};
+
+// Fix 1: updateDelTop
+function updateDelTop(){
+  var hRow=document.getElementById('header-row');
+  var dRow=document.getElementById('del-row');
+  if(hRow&&dRow)dRow.style.top=hRow.offsetHeight+'px';
+}
+var _render=render;
+render=function(){_render();setTimeout(updateDelTop,0);};
+
+// Fix 3: deferredPrompt global scope
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();deferredPrompt=e;
+  var btn=document.getElementById('btn-install');
+  if(btn)btn.style.display='flex';
+});
+window.addEventListener('appinstalled',function(){
+  deferredPrompt=null;
+  var btn=document.getElementById('btn-install');
+  if(btn)btn.style.display='none';
+});
+
+// Konfirmasi toggle
+var _pendingGid=null,_pendingPrice=null,_pendingBought=false,_confirmOpen=false;
+function showConfirm(gid,price,isBought){
+  if(_confirmOpen)return;
+  _confirmOpen=true;
+  _pendingGid=gid;_pendingPrice=price;_pendingBought=isBought;
+  var g=state.grids.find(function(g){return g.id===gid;});
+  var usd=(price*1000).toLocaleString('id-ID');
+  document.getElementById('confirm-price').textContent='$'+usd+' ('+price+'K)';
+  document.getElementById('confirm-grid').textContent=(g?g.label:'')+' · '+(isBought?'Sudah beli → Tandai Jual':'Belum beli → Tandai Beli');
+  var btnBeli=document.getElementById('btn-beli');
+  var btnJual=document.getElementById('btn-jual');
+  // Keduanya tampil, yang tidak relevan di-grey-out
+  if(isBought){
+    btnBeli.style.opacity='0.3';btnBeli.disabled=true;
+    btnJual.style.opacity='1';btnJual.disabled=false;
+  } else {
+    btnBeli.style.opacity='1';btnBeli.disabled=false;
+    btnJual.style.opacity='0.3';btnJual.disabled=true;
+  }
+  // Ikon status di confirm-price
+  document.getElementById('confirm-status').textContent=isBought?'● SUDAH BELI':'○ BELUM BELI';
+  document.getElementById('confirm-status').style.color=isBought?'#f7931a':'#666';
+  var modal=document.getElementById('modal-confirm');
+  modal.style.display='flex';
+  setTimeout(function(){modal.classList.add('show');},10);
+  document.getElementById('confirm-sheet').onclick=function(e){e.stopPropagation();};
+  document.getElementById('grid-area').style.pointerEvents='none';
+}
+function closeConfirm(){
+  _confirmOpen=false;
+  document.getElementById('grid-area').style.pointerEvents='';
+  var modal=document.getElementById('modal-confirm');
+  modal.classList.remove('show');
+  setTimeout(function(){modal.style.display='none';},200);
+  _pendingGid=null;_pendingPrice=null;
+}
+document.getElementById('btn-beli').onclick=function(){
+  if(_pendingGid&&_pendingPrice)toggle(_pendingGid,_pendingPrice);
+  closeConfirm();
+};
+document.getElementById('btn-jual').onclick=function(){
+  if(_pendingGid&&_pendingPrice)toggle(_pendingGid,_pendingPrice);
+  closeConfirm();
+};
+document.getElementById('btn-confirm-cancel').onclick=closeConfirm;
+document.getElementById('modal-confirm').onclick=function(e){
+  if(e.target===this)closeConfirm();
+};
+
+load();render();fetchLivePrice();
+</script>
+
+<script>
+// ── PWA: Generate icon — Shield style (no.6)
+function makeBTCIcon(size){
+  var cv=document.createElement('canvas');cv.width=size;cv.height=size;
+  var ctx=cv.getContext('2d');
+  var s=size;
+
+  // Background hitam rounded
+  var r=s*0.22;
+  ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(s-r,0);
+  ctx.quadraticCurveTo(s,0,s,r);ctx.lineTo(s,s-r);
+  ctx.quadraticCurveTo(s,s,s-r,s);ctx.lineTo(r,s);
+  ctx.quadraticCurveTo(0,s,0,s-r);ctx.lineTo(0,r);
+  ctx.quadraticCurveTo(0,0,r,0);ctx.closePath();
+  ctx.fillStyle='#0a0a0f';ctx.fill();
+
+  // Shield shape
+  ctx.beginPath();
+  ctx.moveTo(s/2,s*.1);
+  ctx.lineTo(s*.85,s*.25);
+  ctx.lineTo(s*.85,s*.55);
+  ctx.quadraticCurveTo(s*.85,s*.85,s/2,s*.92);
+  ctx.quadraticCurveTo(s*.15,s*.85,s*.15,s*.55);
+  ctx.lineTo(s*.15,s*.25);
+  ctx.closePath();
+  var g=ctx.createLinearGradient(0,0,s,s);
+  g.addColorStop(0,'#f7931a');g.addColorStop(1,'#c8620a');
+  ctx.fillStyle=g;ctx.fill();
+
+  // ₿ di dalam shield
+  ctx.fillStyle='#000';
+  ctx.font='bold '+(s*0.42)+'px Arial';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('₿',s/2,s*.52);
+
+  return cv.toDataURL('image/png');
+}
+
+// Generate icons
+var icon192=makeBTCIcon(192);
+var icon512=makeBTCIcon(512);
+
+// Set apple-touch-icon
+document.getElementById('pwa-icon').href=icon192;
+
+// Generate & inject manifest
+var manifest={
+  name:'BTC Grid Tracker',
+  short_name:'BTC Grid',
+  description:'Bot Grid BTC - Pencatatan Pembelian',
+  start_url:'.',
+  display:'standalone',
+  background_color:'#0a0a0f',
+  theme_color:'#0a0a0f',
+  orientation:'portrait',
+  icons:[
+    {src:icon192,sizes:'192x192',type:'image/png',purpose:'any maskable'},
+    {src:icon512,sizes:'512x512',type:'image/png',purpose:'any maskable'}
+  ]
+};
+var blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+document.getElementById('pwa-manifest').href=URL.createObjectURL(blob);
+
+// ── SERVICE WORKER (inline via Blob)
+var swCode=`
+const CACHE='btc-grid-v1';
+const ASSETS=[self.location.href];
+
+self.addEventListener('install',function(e){
+  e.waitUntil(
+    caches.open(CACHE).then(function(cache){
+      return fetch(self.location.href).then(function(r){
+        return cache.put(self.location.href,r);
+      }).catch(function(){});
+    })
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate',function(e){
+  e.waitUntil(
+    caches.keys().then(function(keys){
+      return Promise.all(keys.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));
+    })
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch',function(e){
+  if(e.request.method!=='GET')return;
+  e.respondWith(
+    fetch(e.request).then(function(r){
+      var rc=r.clone();
+      caches.open(CACHE).then(function(cache){cache.put(e.request,rc);});
+      return r;
+    }).catch(function(){
+      return caches.match(e.request);
+    })
+  );
+});
+`;
+
+if('serviceWorker' in navigator){
+  var swBlob=new Blob([swCode],{type:'application/javascript'});
+  var swUrl=URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swUrl,{scope:'./'})
+    .then(function(reg){console.log('SW registered',reg.scope);})
+    .catch(function(e){console.log('SW error',e);});
+}
+</script>
+</body>
+</html>
